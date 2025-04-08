@@ -1,6 +1,7 @@
 import os
 from typing import Any, Dict, Optional
-from pydantic import BaseSettings, validator
+from pydantic_settings import BaseSettings
+from pydantic import field_validator
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
