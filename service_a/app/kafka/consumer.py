@@ -3,33 +3,38 @@ import json
 import os
 from aiokafka import AIOKafkaConsumer
 from ..models.models import MessageIn
+from ..config import settings
+import logging
 
-# Get Kafka bootstrap servers from environment variable or use default
-KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "kafka:9092")
-CONSUMER_TOPIC = os.getenv("CONSUMER_TOPIC", "service-b-events")
+# Configure logger
+logging.basicConfig(
+    level=getattr(logging, settings.LOG_LEVEL),
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+)
+logger = logging.getLogger(__name__)
 
 async def process_message(message):
     """Process incoming messages from Kafka"""
     try:
         value = json.loads(message.value.decode())
         message_obj = MessageIn(**value)
-        print(f"Service A received: {message_obj}")
+        logger.info(f"Received message: {message_obj}")
         # Add your business logic to handle the message here
     except Exception as e:
-        print(f"Error processing message: {e}")
+        logger.error(f"Error processing message: {e}")
 
 async def start_consumer():
     """Start the Kafka consumer"""
     consumer = AIOKafkaConsumer(
-        CONSUMER_TOPIC,
-        bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
-        group_id="service-a-group",
+        settings.CONSUMER_TOPIC,
+        bootstrap_servers=settings.KAFKA_BOOTSTRAP_SERVERS,
+        group_id=settings.KAFKA_CONSUMER_GROUP,
         auto_offset_reset="earliest",
     )
     
     try:
         await consumer.start()
-        print(f"Started consumer, listening to topic {CONSUMER_TOPIC}")
+        logger.info(f"Started consumer, listening to topic {settings.CONSUMER_TOPIC}")
         
         async for msg in consumer:
             await process_message(msg)

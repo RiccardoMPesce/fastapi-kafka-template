@@ -1,10 +1,15 @@
 import json
 import os
 from aiokafka import AIOKafkaProducer
+from ..config import settings
+import logging
 
-# Get Kafka bootstrap servers from environment variable or use default
-KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "kafka:9092")
-PRODUCER_TOPIC = os.getenv("PRODUCER_TOPIC", "service-a-events")
+# Configure logger
+logging.basicConfig(
+    level=getattr(logging, settings.LOG_LEVEL),
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+)
+logger = logging.getLogger(__name__)
 
 class KafkaProducer:
     producer = None
@@ -13,7 +18,7 @@ class KafkaProducer:
     async def get_producer(cls):
         if cls.producer is None:
             cls.producer = AIOKafkaProducer(
-                bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS
+                bootstrap_servers=settings.KAFKA_BOOTSTRAP_SERVERS
             )
             await cls.producer.start()
         return cls.producer
@@ -26,7 +31,12 @@ class KafkaProducer:
 
 async def send_message(message_dict):
     """Send a message to Kafka topic"""
-    producer = await KafkaProducer.get_producer()
-    value = json.dumps(message_dict).encode()
-    await producer.send_and_wait(PRODUCER_TOPIC, value)
-    print(f"Message sent to topic {PRODUCER_TOPIC}: {message_dict}")
+    try:
+        producer = await KafkaProducer.get_producer()
+        value = json.dumps(message_dict).encode()
+        await producer.send_and_wait(settings.PRODUCER_TOPIC, value)
+        logger.info(f"Message sent to topic {settings.PRODUCER_TOPIC}: {message_dict}")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to send message: {e}")
+        return False

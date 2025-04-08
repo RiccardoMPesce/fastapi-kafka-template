@@ -3,8 +3,9 @@ import asyncio
 import uvicorn
 from .kafka.consumer import start_consumer
 from .api import endpoints
+from .config import settings
 
-app = FastAPI(title="Service A")
+app = FastAPI(title=settings.SERVICE_NAME)
 
 # Include API routes
 app.include_router(endpoints.router)
@@ -20,4 +21,4 @@ async def shutdown_event():
     pass
 
 if __name__ == "__main__":
-    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("app.main:app", host="0.0.0.0", port=settings.API_PORT, reload=True)
